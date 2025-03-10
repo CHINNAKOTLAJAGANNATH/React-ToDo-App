@@ -9,7 +9,7 @@ pipeline {
         stage('Clone Repository') {
             steps {
                 echo 'Cloning the React ToDo Application repository...'
-                git branch: 'main', url: 'https://github.com/feelinganubhav/React-ToDo-App.git'
+                git branch: 'main', url: 'https://github.com/CHINNAKOTLAJAGANNATH/React-ToDo-App.git'
             }
         }
 
