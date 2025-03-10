@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        DEPLOY_DIR = 'D:\\React-ToDo-App-CI-CD-Deployment'
+        DEPLOY_DIR = 'D:\Nexturn\ChinnakotlaJagannath-Nexturn-Programs\M6_Devops_Assignments\Exercise-4\React-ToDo-App-CI-CD-Development'
     }
 
     stages {
