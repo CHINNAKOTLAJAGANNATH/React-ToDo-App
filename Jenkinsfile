@@ -2,93 +2,62 @@ pipeline {
     agent any
 
     environment {
+        BUILD_DIR = "build"
         DEPLOY_DIR = "D:\\Nexturn\\ChinnakotlaJagannath-Nexturn-Programs\\M6_Devops_Assignments\\Exercise-4\\React-ToDo-App-CI-CD-Development"
     }
 
     stages {
         stage('Clone Repository') {
             steps {
-                echo 'Cloning the React ToDo Application repository...'
-                git branch: 'main', url: 'https://github.com/CHINNAKOTLAJAGANNATH/React-ToDo-App.git'
+                git 'https://github.com/CHINNAKOTLAJAGANNATH/React-ToDo-App.git'
             }
         }
 
         stage('Install Dependencies') {
             steps {
-                echo 'Installing dependencies...'
                 bat 'npm install'
             }
         }
 
         stage('Lint Code') {
             steps {
-                echo 'Linting the code using ESLint...'
-                bat 'npx eslint . || exit /B 0'
+                bat 'npx eslint . || exit /B 0'  // Prevent pipeline failure due to warnings
             }
         }
 
         stage('Run Tests') {
             steps {
-                echo 'Running tests On All React ToDo App Functionalities using Jest...'
-                bat 'npm test || exit /B 0'
+                bat 'npm test'
             }
         }
 
         stage('Build Application') {
             steps {
-                echo 'Building the React ToDo Application...'
                 bat 'npm run build'
             }
         }
 
         stage('Deploy Application') {
             steps {
-                echo 'Deploying the application...'
-
-                // Ensure the target deployment directory exists
+                script {
+                    if (!fileExists("${BUILD_DIR}")) {
+                        error "Build folder not found. Build might have failed."
+                    }
+                }
                 bat "if not exist \"${DEPLOY_DIR}\" mkdir \"${DEPLOY_DIR}\""
-
-                // Delete existing deployment files
-                bat "rd /s /q \"${DEPLOY_DIR}\" || exit /B 0"
-
-                // Copy new build files
-                bat "xcopy build \"${DEPLOY_DIR}\" /E /I /H /Y"
+                bat "xcopy /E /I /H /Y ${BUILD_DIR} \"${DEPLOY_DIR}\""
             }
         }
 
         stage('Start Server for Testing') {
             steps {
-                echo 'Starting the Server...'
-                bat "start /B npx serve -s \"${DEPLOY_DIR}\" -l 3000"
-
-                echo 'Waiting for a few seconds to allow the React app to start'
-                bat "powershell -Command \"Start-Sleep -Seconds 5\""
+                bat 'serve -s build -l 3000 &'
             }
         }
 
         stage('Post-deployment Testing') {
             steps {
-                script {
-                    echo 'Testing if the App is Running...'
-
-                    // Execute curl command and capture HTTP response code
-                    def responseCode = bat(
-                        script: '''
-                        @echo off
-                        for /f "tokens=*" %%a in ('curl -s -o NUL -w "%%{http_code}" http://localhost:3000') do @echo %%a
-                        ''',
-                        returnStdout: true
-                    ).trim()
-
-                    echo "HTTP Response Code: ${responseCode}"
-
-                    // Validate response code
-                    if (responseCode == '200') {
-                        echo 'App is Up and Running Successfully...'
-                    } else {
-                        error "Post-deployment testing failed with HTTP status code: ${responseCode}"
-                    }
-                }
+                bat 'curl -Is http://localhost:3000 | find "200 OK"'
             }
         }
     }
@@ -96,18 +65,13 @@ pipeline {
     post {
         always {
             echo 'Cleaning up any running servers...'
-            bat '''
-            for /f "tokens=5" %%a in ('netstat -ano ^| find ":3000"') do (
-                if %%a NEQ 0 (
-                    taskkill /pid %%a /f
-                    exit /B 0
-                )
-            )
-            '''
+            bat 'for /F "tokens=5" %a in (\'netstat -ano ^| find ":3000"\') do (taskkill /PID %a /F) || exit /B 0'
         }
+
         success {
-            echo 'Pipeline executed successfully!'
+            echo 'Deployment successful!'
         }
+
         failure {
             echo 'Pipeline execution failed!'
         }
