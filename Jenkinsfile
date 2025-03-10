@@ -2,8 +2,7 @@ pipeline {
     agent any
 
     environment {
-        DEPLOY_DIR = 'DEPLOY_DIR = 'D:/Nexturn/ChinnakotlaJagannath-Nexturn-Programs/M6_Devops_Assignments/Exercise-4/React-ToDo-App-CI-CD-Development'
-'
+        DEPLOY_DIR = "D:/Nexturn/ChinnakotlaJagannath-Nexturn-Programs/M6_Devops_Assignments/Exercise-4/React-ToDo-App-CI-CD-Development"
     }
 
     stages {
