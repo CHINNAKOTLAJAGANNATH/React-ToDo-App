@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        DEPLOY_DIR = "D:/Nexturn/ChinnakotlaJagannath-Nexturn-Programs/M6_Devops_Assignments/Exercise-4/React-ToDo-App-CI-CD-Development"
+        DEPLOY_DIR = "D:\\Nexturn\\ChinnakotlaJagannath-Nexturn-Programs\\M6_Devops_Assignments\\Exercise-4\\React-ToDo-App-CI-CD-Development"
     }
 
     stages {
@@ -29,7 +29,7 @@ pipeline {
 
         stage('Run Tests') {
             steps {
-                echo 'Running tests On All React ToDo App Fuctionalities using Jest...'
+                echo 'Running tests On All React ToDo App Functionalities using Jest...'
                 bat 'npm test || exit /B 0'
             }
         }
@@ -44,39 +44,45 @@ pipeline {
         stage('Deploy Application') {
             steps {
                 echo 'Deploying the application...'
-                bat "del /q ${DEPLOY_DIR}\\*"
-                bat "xcopy dist ${DEPLOY_DIR} /E /I /H /Y"
+
+                // Ensure the target deployment directory exists
+                bat "if not exist \"${DEPLOY_DIR}\" mkdir \"${DEPLOY_DIR}\""
+
+                // Delete existing deployment files
+                bat "rd /s /q \"${DEPLOY_DIR}\" || exit /B 0"
+
+                // Copy new build files
+                bat "xcopy build \"${DEPLOY_DIR}\" /E /I /H /Y"
             }
         }
 
         stage('Start Server for Testing') {
             steps {
                 echo 'Starting the Server...'
-                bat "start /B npx serve -s ${DEPLOY_DIR} -l 3000"
+                bat "start /B npx serve -s \"${DEPLOY_DIR}\" -l 3000"
 
                 echo 'Waiting for a few seconds to allow the React app to start'
-                bat "powershell -Command 'Start-Sleep -Seconds 3'"
-
+                bat "powershell -Command \"Start-Sleep -Seconds 5\""
             }
         }
 
         stage('Post-deployment Testing') {
             steps {
                 script {
-                    echo 'Testing the App if it is Running or NOT...'
-                    
-                    echo 'Execute the curl command to fetch the HTTP status code'
+                    echo 'Testing if the App is Running...'
+
+                    // Execute curl command and capture HTTP response code
                     def responseCode = bat(
-                        script: """
+                        script: '''
                         @echo off
-                        curl -o NUL -s -w %%{http_code} http://localhost:3000
-                        """,
+                        for /f "tokens=*" %%a in ('curl -s -o NUL -w "%%{http_code}" http://localhost:3000') do @echo %%a
+                        ''',
                         returnStdout: true
                     ).trim()
-                    
+
                     echo "HTTP Response Code: ${responseCode}"
 
-                    // Check if the response code is 200
+                    // Validate response code
                     if (responseCode == '200') {
                         echo 'App is Up and Running Successfully...'
                     } else {
@@ -98,7 +104,6 @@ pipeline {
                 )
             )
             '''
-            
         }
         success {
             echo 'Pipeline executed successfully!'
