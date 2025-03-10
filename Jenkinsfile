@@ -9,7 +9,13 @@ pipeline {
     stages {
         stage('Clone Repository') {
             steps {
-                git 'https://github.com/CHINNAKOTLAJAGANNATH/React-ToDo-App.git'
+                script {
+                    try {
+                        checkout scm
+                    } catch (Exception e) {
+                        error "Git checkout failed. Verify repository and branch settings."
+                    }
+                }
             }
         }
 
@@ -21,7 +27,7 @@ pipeline {
 
         stage('Lint Code') {
             steps {
-                bat 'npx eslint . || exit /B 0'  // Prevent pipeline failure due to warnings
+                bat 'npx eslint . || exit /B 0'  // Ignores warnings
             }
         }
 
@@ -51,7 +57,7 @@ pipeline {
 
         stage('Start Server for Testing') {
             steps {
-                bat 'serve -s build -l 3000 &'
+                bat 'serve -s build -l 3000 > NUL 2>&1 &'
             }
         }
 
@@ -64,8 +70,10 @@ pipeline {
 
     post {
         always {
-            echo 'Cleaning up any running servers...'
-            bat 'for /F "tokens=5" %a in (\'netstat -ano ^| find ":3000"\') do (taskkill /PID %a /F) || exit /B 0'
+            script {
+                echo 'Cleaning up any running servers...'
+                bat 'for /F "tokens=5" %a in (\'netstat -ano ^| find ":3000"\') do @taskkill /PID %a /F 2>NUL'
+            }
         }
 
         success {
